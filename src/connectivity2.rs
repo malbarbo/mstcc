@@ -33,7 +33,7 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity2<'a, G> {
     }
 
     fn dfs(&mut self) {
-        // TODO: is_tree is allocating!
+        // FIXME: is_tree is allocating!
         assert!(self.g.is_tree());
         let time = Time::default();
         // g is a tree (acyclic and connected), so we can ignore the color changes
@@ -64,7 +64,7 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity2<'a, G> {
     }
 
     pub fn disconnect(&mut self, u: Vertex<G>, v: Vertex<G>) {
-        // TODO: assert that this function in not called more than 2 times
+        // FIXME: assert that this function in not called more than 2 times
         assert!(self.is_connected(u, v));
 
         let r = if self.is_ancestor_of(u, v) { v } else { u };
@@ -100,85 +100,5 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity2<'a, G> {
     pub fn reset(&mut self) {
         self.sub_a = self.root;
         self.sub_b = self.root;
-    }
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use itertools::Itertools;
-    use fera::graph::components::Components;
-    use rand;
-
-    #[test]
-    fn test0() {
-        let mut rng = rand::weak_rng();
-
-        for n in 2..20 {
-            let g = StaticGraph::new_random_tree(n, &mut rng);
-            let dec = TrackConnectivity2::new(&g);
-            for (u, v) in g.vertices().tuple_combinations() {
-                assert!(dec.is_connected(u, v), "is_connected({:?}, {:?})", u, v);
-            }
-        }
-    }
-
-    #[test]
-    fn test1() {
-        let mut rng = rand::weak_rng();
-
-        for n in 2..20 {
-            let g = StaticGraph::new_random_tree(n, &mut rng);
-
-            for (e, u, v) in g.edges_with_ends() {
-                let sub = g.spanning_subgraph(g.edges().filter(|&w| w != e));
-                let comps = sub.connected_components();
-
-                let mut dec = TrackConnectivity2::new(&g);
-                dec.set_edges(g.edges());
-                dec.disconnect(u, v);
-
-                for (u, v) in g.vertices().tuple_combinations() {
-                    assert_eq!(comps.is_connected(u, v),
-                               dec.is_connected(u, v),
-                               "n = {}, u = {}, v = {})",
-                               n,
-                               u,
-                               v);
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn test2() {
-        let mut rng = rand::weak_rng();
-
-        for n in 3..20 {
-            let g = StaticGraph::new_random_tree(n, &mut rng);
-            for (e1, e2) in g.edges().tuple_combinations() {
-                let sub = g.spanning_subgraph(g.edges().filter(|&w| w != e1 && w != e2));
-                let comps = sub.connected_components();
-
-                let mut dec = TrackConnectivity2::new(&g);
-                dec.set_edges(g.edges());
-                let (u, v) = g.ends(e1);
-                dec.disconnect(u, v);
-                let (u, v) = g.ends(e2);
-                dec.disconnect(u, v);
-
-                for (u, v) in g.vertices().tuple_combinations() {
-                    assert_eq!(comps.is_connected(u, v),
-                               dec.is_connected(u, v),
-                               "n = {}, u = {} - comp {}, v = {} - comp {}",
-                               n,
-                               u,
-                               dec.comp(u),
-                               v,
-                               dec.comp(v));
-                }
-            }
-        }
     }
 }

@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate clap;
 
+#[macro_use]
+extern crate log;
+
 extern crate env_logger;
 extern crate fera;
 extern crate mstcc;
@@ -10,15 +13,13 @@ extern crate rand;
 use std::time::Instant;
 
 // external
+use fera::ext::VecExt;
 use fera::fun::vec;
 use fera::graph::kruskal::Kruskal;
 use fera::graph::prelude::*;
-use fera::ext::VecExt;
 
 // local
 use mstcc::*;
-
-const ALFA: u32 = 10_000;
 
 pub fn main() {
     let start = Instant::now();
@@ -26,24 +27,42 @@ pub fn main() {
 
     init_logger(&args.log_level);
 
-    let p = read_sammer_urrutia(&args.file).unwrap();
+    info!("Using {:?}", args.seed);
+
+    let mut p = read_sammer_urrutia(&args.file).unwrap();
     let mut rng = args.seed.new_xor_shift_rng();
+    p.alpha = args.greedy_alpha;
+    p.beta = args.greedy_beta;
 
     let mut tree = match args.init.as_str() {
         "random" => vec(p.g.kruskal().edges(vec(p.g.edges()).shuffled(&mut rng))),
         "kruskal" => vec(p.g.kruskal().weight(&p.w)),
         "greedy" => new_greedy(&p),
-        _ => unreachable!()
+        _ => unreachable!(),
+    };
+
+    p.alpha = args.alpha;
+    p.beta = args.beta;
+
+    let mut ils = Ils {
+        p: &p,
+        max_iters: args.ils_max_iters,
+        max_iters_no_improv: args.ils_max_iters_no_improv,
+        num_excludes: args.ils_excludes,
     };
 
     let conflicts = match args.alg.as_str() {
-        "2ex" => {
-            // TODO: Rename OneEdgeReplacement
+        "2ex" => OneEdgeReplacement::new(&p).run(&mut tree),
+        "4ex" => TwoEdgeReplacement::new(&p).run(&mut tree),
+        "ils-2ex" => {
             let mut one = OneEdgeReplacement::new(&p);
-            one.run(&mut tree, 1, ALFA)
+            ils.run(&mut tree, &mut rng, |tree| one.run(tree))
         }
-        "4ex" => two_opt(&p, &mut tree, &[], 1, ALFA),
-        _ => unreachable!()
+        "ils-4ex" => {
+            let mut two = TwoEdgeReplacement::new(&p);
+            ils.run(&mut tree, &mut rng, |tree| two.run(tree))
+        }
+        _ => unreachable!(),
     };
 
     let elapsed = start.elapsed();
@@ -60,6 +79,13 @@ pub fn main() {
 struct Args {
     seed: Seed,
     log_level: String,
+    alpha: u32,
+    beta: u32,
+    greedy_alpha: u32,
+    greedy_beta: u32,
+    ils_max_iters: u32,
+    ils_max_iters_no_improv: u32,
+    ils_excludes: u32,
     init: String,
     alg: String,
     file: String,
@@ -72,12 +98,37 @@ fn args() -> Args {
         (about: "mstcc solver based on {2, 4}-exchange neighborhood")
         (arg: arg_seed())
         (arg: arg_log())
+        (@arg alpha: --alpha
+            default_value("1")
+            "The alpha value used in objective function")
+        (@arg beta: --beta
+            default_value("10000")
+            "The beta value used in objective function")
+        (@arg greedy_alpha: --("greedy-alpha")
+            default_value("1")
+            "The alpha value used in objective function in the greedy init heuristic")
+        (@arg greedy_beta: --("greedy-beta")
+            default_value("10000")
+            "The beta value used in objective function in the greedy init heuristic")
+        (@arg ils_max_iters: --("ils-max-iters")
+            default_value("100")
+            "Maximum number of iterations for the ils algorithm")
+        (@arg ils_max_iters_no_improv: --("ils-max-iters-no-improv")
+            default_value("10")
+            "Maximum number of iterations without improvement for the ils algorithm")
+        (@arg ils_excludes: --("ils-excludes")
+            default_value("1")
+            "Number of edges to exclude in the perturbation phase of the ils algorithm")
         (@arg init: +required
-            possible_value[random kruskal heuristic]
+            possible_value("random")
+            possible_value("kruskal")
+            possible_value("greedy")
             "The method used to create the initial solution")
         (@arg alg: +required
             possible_value("2ex")
             possible_value("4ex")
+            possible_value("ils-2ex")
+            possible_value("ils-4ex")
             "The algorithm to run")
         (arg: arg_input())
     );
@@ -87,7 +138,14 @@ fn args() -> Args {
     Args {
         seed: value_t!(matches, "seed", Seed).unwrap_or_else(|_| Seed::new_random()),
         log_level: matches.value_of("level").unwrap().into(),
+        alpha: value_t_or_exit!(matches, "alpha", u32),
+        beta: value_t_or_exit!(matches, "beta", u32),
         init: matches.value_of("init").unwrap().into(),
+        greedy_alpha: value_t_or_exit!(matches, "greedy_alpha", u32),
+        greedy_beta: value_t_or_exit!(matches, "greedy_beta", u32),
+        ils_max_iters: value_t_or_exit!(matches, "ils_max_iters", u32),
+        ils_max_iters_no_improv: value_t_or_exit!(matches, "ils_max_iters_no_improv", u32),
+        ils_excludes: value_t_or_exit!(matches, "ils_excludes", u32),
         alg: matches.value_of("alg").unwrap().into(),
         file: matches.value_of("input").unwrap().into(),
     }

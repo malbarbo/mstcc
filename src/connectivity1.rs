@@ -74,5 +74,3 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity1<'a, G> {
         self.dfs()
     }
 }
-
-// TODO: write tests

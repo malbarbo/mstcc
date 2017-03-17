@@ -71,6 +71,8 @@ pub fn read_sammer_urrutia(file: &str) -> Result<MstCcProblem, Box<Error>> {
         w: w,
         cc: cc,
         num_cc: num_cc,
+        alpha: 1,
+        beta: 0,
     })
 }
 

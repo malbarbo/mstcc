@@ -7,6 +7,7 @@ use {MstCcProblem, TrackConflicts, TrackConnectivity1, log_improvement};
 
 pub struct OneEdgeReplacement<'a> {
     p: &'a MstCcProblem,
+    in_tree: DefaultEdgePropMut<StaticGraph, bool>,
     non_tree: Vec<Edge<StaticGraph>>,
     connectivity: TrackConnectivity1<'a, StaticGraph>,
     conflicts: TrackConflicts<'a>,
@@ -15,9 +16,10 @@ pub struct OneEdgeReplacement<'a> {
 impl<'a> OneEdgeReplacement<'a> {
     pub fn new(p: &'a MstCcProblem) -> Self {
         let connectivity = TrackConnectivity1::new(&p.g);
-        let conflicts = TrackConflicts::new(&p, vec![]);
+        let conflicts = TrackConflicts::new(&p);
         OneEdgeReplacement {
             p: p,
+            in_tree: p.g.edge_prop(false),
             non_tree: vec![],
             connectivity: connectivity,
             conflicts: conflicts,
@@ -25,14 +27,16 @@ impl<'a> OneEdgeReplacement<'a> {
     }
 
     #[allow(unused_assignments)]
-    pub fn run(&mut self, tree: &mut [Edge<StaticGraph>], alfa: u32, beta: u32) -> u32 {
-        self.prepare(tree);
-        let (g, w) = (&self.p.g, &self.p.w);
-        // weighted cost function
-        let ww = |e, c: &TrackConflicts| alfa * w.get(e) + beta * c.num_conflicts_of(e);
+    pub fn run(&mut self, tree: &mut [Edge<StaticGraph>]) -> u32 {
+        self.setup(tree);
+
+        let (p, g, w) = (&self.p, &self.p.g, &self.p.w);
+        let obj = |e, c: &TrackConflicts| p.obj(w.get(e), c.num_conflicts_of(e));
+
         let connectivity = &mut self.connectivity;
         let conflicts = &mut self.conflicts;
         let non_tree = &mut self.non_tree;
+
         let mut weight = sum_prop(w, &*tree);
         let mut prev_weight = weight;
         let mut prev_num_conflicts = conflicts.num_conflicts();
@@ -42,7 +46,7 @@ impl<'a> OneEdgeReplacement<'a> {
         let mut search = true;
         'out: while search {
             search = false;
-            non_tree.sort_by_prop(FnProp(|e| ww(e, &conflicts)));
+            non_tree.sort_by_prop(FnProp(|e| obj(e, &conflicts)));
             tree.sort_by_prop(w);
             tree.reverse();
             for i in 0..tree.len() {
@@ -56,8 +60,8 @@ impl<'a> OneEdgeReplacement<'a> {
                 // TODO: find a limit using binary search
                 for j in 0..non_tree.len() {
                     let ins = non_tree[j];
-                    if ww(ins, &conflicts) >= ww(rem, &conflicts) {
-                        // all remaining non_tree have ww greater or equal than rem
+                    if obj(ins, &conflicts) >= obj(rem, &conflicts) {
+                        // all remaining non_tree have obj greater or equal than rem
                         break;
                     }
 
@@ -103,18 +107,16 @@ impl<'a> OneEdgeReplacement<'a> {
         conflicts.num_conflicts()
     }
 
-    pub fn prepare(&mut self, tree: &mut [Edge<StaticGraph>]) {
+    fn setup(&mut self, tree: &[Edge<StaticGraph>]) {
         self.connectivity.set_edges(&*tree);
 
         self.conflicts.reset();
-        for &e in &*tree {
-            self.conflicts.add_edge(e);
-        }
+        self.conflicts.add_edges(tree);
 
-        // TODO: move to the struct?
-        let mut in_tree = self.p.g.default_edge_prop(false);
-        in_tree.set_values(&*tree, true);
+        self.in_tree.set_values(self.p.g.edges(), false);
+        self.in_tree.set_values(tree, true);
 
+        let in_tree = &self.in_tree;
         self.non_tree.clear();
         self.non_tree.extend(self.p.g.edges().filter(|e| !in_tree[*e]));
     }
