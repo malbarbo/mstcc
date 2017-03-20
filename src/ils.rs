@@ -15,9 +15,11 @@ pub struct Ils<'a> {
     pub max_iters: u32,
     pub max_iters_no_improv: u32,
     pub num_excludes: u32,
+    pub stop_on_feasible: bool,
 }
 
 impl<'a> Ils<'a> {
+    #[inline(never)]
     pub fn run<F>(&mut self,
                   tree: &mut Vec<Edge<StaticGraph>>,
                   rng: &mut XorShiftRng,
@@ -49,6 +51,10 @@ impl<'a> Ils<'a> {
                 if iters_no_impr >= self.max_iters_no_improv {
                     break;
                 }
+            }
+
+            if self.stop_on_feasible && num_conflicts == 0 {
+                break;
             }
 
             // TODO: use tree.clone_from(&best)?

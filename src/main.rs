@@ -49,6 +49,7 @@ pub fn main() {
         max_iters: args.ils_max_iters,
         max_iters_no_improv: args.ils_max_iters_no_improv,
         num_excludes: args.ils_excludes,
+        stop_on_feasible: args.stop_on_feasible,
     };
 
     let conflicts = match args.alg.as_str() {
@@ -56,6 +57,8 @@ pub fn main() {
         "4ex" => TwoEdgeReplacement::new(&p).run(&mut tree),
         "ils-2ex" => {
             let mut one = OneEdgeReplacement::new(&p);
+            one.sort = args.sort;
+            one.stop_on_feasible = args.stop_on_feasible;
             ils.run(&mut tree, &mut rng, |tree| one.run(tree))
         }
         "ils-4ex" => {
@@ -83,6 +86,8 @@ struct Args {
     beta: u32,
     greedy_alpha: u32,
     greedy_beta: u32,
+    sort: bool,
+    stop_on_feasible: bool,
     ils_max_iters: u32,
     ils_max_iters_no_improv: u32,
     ils_excludes: u32,
@@ -119,6 +124,10 @@ fn args() -> Args {
         (@arg ils_excludes: --("ils-excludes")
             default_value("1")
             "Number of edges to exclude in the perturbation phase of the ils algorithm")
+        (@arg sort: --sort
+            "Sort the edges in 2ex")
+        (@arg stop_on_feasible: --("stop-on-feasible")
+            "Stop when the first feasible solution is found")
         (@arg init: +required
             possible_value("random")
             possible_value("kruskal")
@@ -143,6 +152,8 @@ fn args() -> Args {
         init: matches.value_of("init").unwrap().into(),
         greedy_alpha: value_t_or_exit!(matches, "greedy_alpha", u32),
         greedy_beta: value_t_or_exit!(matches, "greedy_beta", u32),
+        sort: matches.is_present("sort"),
+        stop_on_feasible: matches.is_present("stop_on_feasible"),
         ils_max_iters: value_t_or_exit!(matches, "ils_max_iters", u32),
         ils_max_iters_no_improv: value_t_or_exit!(matches, "ils_max_iters_no_improv", u32),
         ils_excludes: value_t_or_exit!(matches, "ils_excludes", u32),

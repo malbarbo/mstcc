@@ -33,7 +33,7 @@ impl<'a> TwoEdgeReplacement<'a> {
     pub fn run(&mut self, tree: &mut [Edge<StaticGraph>]) -> u32 {
         self.setup(tree);
         let (p, g, w) = (&self.p, &self.p.g, &self.p.w);
-        let obj = |e, c: &TrackConflicts| p.obj(w.get(e), c.num_conflicts_of(e));
+        let obj = |e, c: &TrackConflicts| p.obj(w.get(e), c[e]);
 
         let conflicts = &mut self.conflicts;
         let connectivity = &mut self.connectivity;
@@ -68,7 +68,7 @@ impl<'a> TwoEdgeReplacement<'a> {
                     connectivity.disconnect(a, b);
                     connectivity.disconnect(c, d);
 
-                    let prev_num_conflicts = conflicts.num_conflicts();
+                    let prev_num_conflicts = conflicts.total();
                     conflicts.remove_edge(ei);
                     conflicts.remove_edge(ej);
 
@@ -124,7 +124,7 @@ impl<'a> TwoEdgeReplacement<'a> {
 
                         let weight: u32 = sum_prop(w, &*tree);
 
-                        log_improvement("conflicts", prev_num_conflicts, conflicts.num_conflicts());
+                        log_improvement("conflicts", prev_num_conflicts, conflicts.total());
                         log_improvement("weight   ", pre_weight, weight);
 
                         search = true;
@@ -145,7 +145,7 @@ impl<'a> TwoEdgeReplacement<'a> {
         let weight: u32 = sum_prop(w, &*tree);
         debug!("End two with weight = {}", weight);
 
-        conflicts.num_conflicts()
+        conflicts.total()
     }
 
     fn setup(&mut self, tree: &[Edge<StaticGraph>]) {

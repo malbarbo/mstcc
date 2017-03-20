@@ -1,3 +1,6 @@
+// internal
+use std::ops::Index;
+
 // external
 use fera::graph::ext::IntoOwned;
 use fera::graph::prelude::*;
@@ -96,20 +99,24 @@ impl<'a> TrackConflicts<'a> {
         self.pos[e] != NONE
     }
 
-    pub fn num_conflicts_of(&self, e: Edge<StaticGraph>) -> u32 {
-        self.cc[e]
-    }
-
-    pub fn num_conflicts(&self) -> u32 {
+    pub fn total(&self) -> u32 {
         self.conflicts
     }
 
     pub fn check(&self) {
         let new = Self::with_edges(self.p, &self.edges);
-        assert_eq!(new.num_conflicts(), self.num_conflicts());
+        assert_eq!(new.total(), self.total());
         for e in self.p.g.edges() {
             assert_eq!(new.contains(e), self.contains(e));
-            assert_eq!(new.num_conflicts_of(e), self.num_conflicts_of(e));
+            assert_eq!(new[e], self[e]);
         }
+    }
+}
+
+impl<'a> Index<Edge<StaticGraph>> for TrackConflicts<'a> {
+    type Output = u32;
+
+    fn index(&self, e: Edge<StaticGraph>) -> &u32 {
+        &self.cc[e]
     }
 }

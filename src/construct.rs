@@ -12,7 +12,7 @@ pub fn new_greedy(p: &MstCcProblem) -> Vec<Edge<StaticGraph>> {
     let mut tree = vec![];
     let mut start = 0;
     while ds.num_sets() > 1 {
-        edges[start..].sort_by_prop(FnProp(|e| p.obj(p.w.get(e), conflicts.num_conflicts_of(e))));
+        edges[start..].sort_by_prop(FnProp(|e| p.obj(p.w.get(e), conflicts[e])));
         for (i, &e) in edges[start..].iter().enumerate() {
             let (u, v) = p.g.ends(e);
             if ds.in_same_set(u, v) {

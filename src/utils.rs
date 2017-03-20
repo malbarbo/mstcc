@@ -6,6 +6,27 @@ use std::num::ParseIntError;
 use clap::Arg;
 use rand::{self, Rng, SeedableRng, XorShiftRng};
 
+pub fn partition<T, F>(xs: &mut [T], mut pred: F) -> usize
+    where F: FnMut(&T) -> bool
+{
+    if xs.is_empty() {
+        return 0;
+    }
+
+    let mut i = 0;
+    let mut j = xs.len() - 1;
+    while i < j {
+        if pred(&xs[i]) {
+            i += 1;
+        } else {
+            xs.swap(i, j);
+            j -= 1;
+        }
+    }
+
+    i
+}
+
 
 // Log
 
