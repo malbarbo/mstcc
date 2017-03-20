@@ -15,6 +15,14 @@ pub struct TwoEdgeReplacement<'a> {
     non_tree: Vec<Edge<StaticGraph>>,
     conflicts: TrackConflicts<'a>,
     connectivity: TrackConnectivity2<'a, StaticGraph>,
+    weight: u32,
+    num_conflicts: u32,
+    obj: u32,
+    c01: Vec<usize>,
+    c02: Vec<usize>,
+    c12: Vec<usize>,
+    pub sort: bool,
+    pub stop_on_feasible: bool,
 }
 
 impl<'a> TwoEdgeReplacement<'a> {
@@ -25,129 +33,213 @@ impl<'a> TwoEdgeReplacement<'a> {
             in_tree: p.g.edge_prop(false),
             conflicts: TrackConflicts::new(p),
             connectivity: TrackConnectivity2::new(&p.g),
+            weight: 0,
+            num_conflicts: 0,
+            obj: 0,
+            c01: vec![],
+            c02: vec![],
+            c12: vec![],
+            sort: false,
+            stop_on_feasible: false,
         }
     }
 
-    // TODO: remove allow attribute when https://github.com/rust-lang/rust/issues/28570 got fixed
-    #[allow(unused_assignments)]
+    #[inline(never)]
     pub fn run(&mut self, tree: &mut [Edge<StaticGraph>]) -> u32 {
         self.setup(tree);
-        let (p, g, w) = (&self.p, &self.p.g, &self.p.w);
-        let obj = |e, c: &TrackConflicts| p.obj(w.get(e), c[e]);
 
-        let conflicts = &mut self.conflicts;
-        let connectivity = &mut self.connectivity;
-        let non_tree = &mut self.non_tree;
-        let weight: u32 = sum_prop(w, &*tree);
+        debug!("Start two-edge-replacement with weight = {}", self.weight);
 
-        debug!("Start two with weight = {}", weight);
-
-        let mut search = true;
-        'out: while search {
-            search = false;
-
-            conflicts.check();
-            assert!(g.spanning_subgraph(conflicts.edges()).is_tree());
-
-            connectivity.set_edges(&*tree);
-
-            //tree.sort_by_prop(FnProp(|e| obj(e, &conflicts)));
-            //tree.reverse();
-
-            //non_tree.sort_by_prop(FnProp(|e| obj(e, &conflicts)));
-
-            // i and j are the index of the edges to be replaced
-            for i in 0..tree.len() {
-                let ei = tree[i];
-                let (a, b) = g.ends(ei);
-                for j in (i + 1)..tree.len() {
-                    let ej = tree[j];
-                    let (c, d) = g.ends(ej);
-
-                    connectivity.reset();
-                    connectivity.disconnect(a, b);
-                    connectivity.disconnect(c, d);
-
-                    let prev_num_conflicts = conflicts.total();
-                    conflicts.remove_edge(ei);
-                    conflicts.remove_edge(ej);
-
-                    // FIXME: wei can conflict with wij
-                    let wei = obj(ei, &conflicts);
-                    let wej = obj(ej, &conflicts);
-
-                    // TODO: use a better scheme to check connectivity
-                    let mut connected = [false, false, false];
-                    let mut new = [None, None];
-                    let mut sub_w = wei + wej;
-
-                    // search for new edges
-                    for k in 0..non_tree.len() {
-                        let e = non_tree[k];
-                        let we = obj(e, &conflicts);
-                        if we >= sub_w {
-                            continue;
-                            //if conflicts.num_conflicts_of(e) == 0 {
-                            //    break;
-                            //} else {
-                            //    continue;
-                            //}
-                        }
-
-                        let (x, y) = g.ends(e);
-                        let comp_x = connectivity.comp(x);
-                        let comp_y = connectivity.comp(y);
-                        if comp_x == comp_y || connected[comp_x] && connected[comp_y] {
-                            continue;
-                        }
-
-                        // (x, y) is being added to the three, so update conflicts
-                        conflicts.add_edge(e);
-                        if new[0] == None {
-                            // this is the first edge to be added to the tree
-                            new[0] = Some(k);
-                            sub_w -= we;
-                            connected[comp_x] = true;
-                            connected[comp_y] = true;
-                        } else {
-                            // this is the second edge
-                            new[1] = Some(k);
-                            break;
-                        }
-                    }
-
-                    // if two new edges were found, put it on the tree
-                    if let (Some(k), Some(l)) = (new[0], new[1]) {
-                        let pre_weight: u32 = sum_prop(w, &*tree);
-                        mem::swap(&mut tree[i], &mut non_tree[k]);
-                        mem::swap(&mut tree[j], &mut non_tree[l]);
-
-                        let weight: u32 = sum_prop(w, &*tree);
-
-                        log_improvement("conflicts", prev_num_conflicts, conflicts.total());
-                        log_improvement("weight   ", pre_weight, weight);
-
-                        search = true;
-                        continue 'out;
-                    }
-
-                    // the edges was not replaced, so restore conflicts
-                    if let Some(k) = new[0] {
-                        conflicts.remove_edge(non_tree[k]);
-                    }
-
-                    conflicts.add_edge(ei);
-                    conflicts.add_edge(ej);
-                }
+        let mut s = 0;
+        loop {
+            if self.stop_on_feasible && self.conflicts.total() == 0 {
+                break;
+            }
+            if let Some(ss) = self.two_replacement(tree, s) {
+                s = ss;
+            } else {
+                break;
             }
         }
 
-        let weight: u32 = sum_prop(w, &*tree);
-        debug!("End two with weight = {}", weight);
+        let expected_weight: u32 = sum_prop(&self.p.w, &*tree);
+        assert_eq!(expected_weight, self.weight);
 
-        conflicts.total()
+        debug!("End two-edge-replacement with weight = {}", self.weight);
+
+        self.conflicts.total()
     }
 
+    #[inline(never)]
+    pub fn two_replacement(&mut self, tree: &mut [Edge<StaticGraph>], s: usize) -> Option<usize> {
+        self.check_conflicts();
+
+        self.sort(tree);
+
+        for i in s..tree.len() {
+            let (ei, a, b) = self.p.g.ends(tree[i]);
+
+            self.conflicts.remove_edge(ei);
+
+            for j in (i + 1)..tree.len() {
+                let (ej, c, d) = self.p.g.ends(tree[j]);
+
+                self.conflicts.remove_edge(ej);
+                self.connectivity.disconnect2((a, b), (c, d));
+
+                if let Some((k, l)) = self.find_replace(ei, ej) {
+                    self.replace(tree, (i, j), (k, l));
+                    return Some(i);
+                }
+
+                self.conflicts.add_edge(ej);
+            }
+
+            self.conflicts.add_edge(ei);
+        }
+
+        None
+    }
+
+    #[inline(never)]
+    fn sort(&mut self, tree: &mut [Edge<StaticGraph>]) {
+        if self.sort {
+            let p = &self.p;
+            let conflicts = &self.conflicts;
+            let obj = FnProp(|e| p.obj(p.w.get(e), conflicts[e]));
+            self.non_tree.sort_by_prop(&obj);
+            tree.sort_by_prop(&obj);
+            tree.reverse();
+        }
+    }
+
+    #[inline(never)]
+    fn find_replace(&mut self,
+                    ei: Edge<StaticGraph>,
+                    ej: Edge<StaticGraph>)
+                    -> Option<(usize, usize)> {
+        self.separate_comps(ei, ej);
+
+        self.find_replace_(ei, ej, 0, 1)
+            .or_else(|| self.find_replace_(ei, ej, 0, 2))
+            .or_else(|| self.find_replace_(ei, ej, 1, 2))
+    }
+
+    #[inline(never)]
+    fn separate_comps(&mut self, ei: Edge<StaticGraph>, ej: Edge<StaticGraph>) {
+        self.c01.clear();
+        self.c02.clear();
+        self.c12.clear();
+
+        for k in 0..self.non_tree_limit(ei, ej) {
+            let (e, u, v) = self.p.g.ends(self.non_tree[k]);
+
+            if self.obj_edge(e) >= self.obj_edge(ei) + self.obj_edge(ej) {
+                continue;
+            }
+
+            match (self.connectivity.comp(u), self.connectivity.comp(v)) {
+                (x, y) if x == y => continue,
+                (0, 1) | (1, 0) => self.c01.push(k),
+                (0, 2) | (2, 0) => self.c02.push(k),
+                (1, 2) | (2, 1) => self.c12.push(k),
+                _ => unreachable!(),
+            }
+        }
+
+        /*
+        let w = &self.p.w;
+        let non_tree = &self.non_tree;
+        self.c01.sort_by_key(|i| w.get(non_tree[*i]));
+        self.c02.sort_by_key(|i| w.get(non_tree[*i]));
+        self.c12.sort_by_key(|i| w.get(non_tree[*i]));
+        */
+    }
+
+    fn non_tree_limit(&self, ei: Edge<StaticGraph>, ej: Edge<StaticGraph>) -> usize {
+        if self.sort {
+            let w = self.p.w.get(ei) + self.p.w.get(ej);
+            let c = self.conflicts[ei] + self.conflicts[ej] + 2;
+            let key = self.p.obj(w, c);
+            match self.non_tree.binary_search_by_key(&key, |e| self.obj_edge(*e)) {
+                Ok(to) | Err(to) => to,
+            }
+        } else {
+            self.non_tree.len()
+        }
+    }
+
+    #[inline(never)]
+    fn find_replace_(&mut self,
+                     ei: Edge<StaticGraph>,
+                     ej: Edge<StaticGraph>,
+                     a: usize,
+                     b: usize)
+                     -> Option<(usize, usize)> {
+        let aa = if a == 0 {
+            &self.c01
+        } else if a == 1 {
+            &self.c02
+        } else {
+            &self.c12
+        };
+
+        let bb = if b == 0 {
+            &self.c01
+        } else if b == 1 {
+            &self.c02
+        } else {
+            &self.c12
+        };
+
+        let w = &self.p.w;
+        for &k in aa {
+            let ek = self.non_tree[k];
+
+            self.conflicts.add_edge(ek);
+
+            for &l in bb {
+                let el = self.non_tree[l];
+
+                self.conflicts.add_edge(el);
+
+                let new_weight = self.weight - w.get(ei) - w.get(ej) + w.get(ek) + w.get(el);
+                let new_obj = self.p.obj(new_weight, self.conflicts.total());
+
+                if new_obj < self.obj {
+                    return Some((k, l));
+                }
+
+                self.conflicts.remove_edge(el);
+            }
+
+            self.conflicts.remove_edge(ek);
+        }
+
+        None
+    }
+
+    fn replace(&mut self,
+               tree: &mut [Edge<StaticGraph>],
+               (i, j): (usize, usize),
+               (k, l): (usize, usize)) {
+        mem::swap(&mut tree[i], &mut self.non_tree[k]);
+        mem::swap(&mut tree[j], &mut self.non_tree[l]);
+
+        self.connectivity.set_edges(&*tree);
+
+        let num_conflicts = self.conflicts.total();
+        let weight = sum_prop(&self.p.w, &*tree);
+
+        log_improvement("conflicts", self.num_conflicts, num_conflicts);
+        log_improvement("weight   ", self.weight, weight);
+
+        self.num_conflicts = num_conflicts;
+        self.weight = weight;
+        self.obj = self.p.obj(self.weight, self.num_conflicts);
+    }
+
+    #[inline(never)]
     fn setup(&mut self, tree: &[Edge<StaticGraph>]) {
         self.connectivity.set_edges(&*tree);
 
@@ -159,6 +251,22 @@ impl<'a> TwoEdgeReplacement<'a> {
 
         let in_tree = &self.in_tree;
         self.non_tree.clear();
-        self.non_tree.extend(self.p.g.edges().filter(|e| !in_tree[*e]));
+
+        let g = &self.p.g;
+        self.non_tree.extend(g.edges().filter(|e| !in_tree[*e]));
+
+        self.weight = sum_prop(&self.p.w, &*tree);
+        self.num_conflicts = self.conflicts.total();
+        self.obj = self.p.obj(self.weight, self.num_conflicts);
+    }
+
+    fn check_conflicts(&self) {
+        self.conflicts.check();
+        let g = &self.p.g;
+        assert!(g.spanning_subgraph(self.conflicts.edges()).is_tree());
+    }
+
+    fn obj_edge(&self, e: Edge<StaticGraph>) -> u32 {
+        self.p.obj(self.p.w.get(e), self.conflicts[e])
     }
 }

@@ -63,6 +63,8 @@ pub fn main() {
         }
         "ils-4ex" => {
             let mut two = TwoEdgeReplacement::new(&p);
+            two.sort = args.sort;
+            two.stop_on_feasible = args.stop_on_feasible;
             ils.run(&mut tree, &mut rng, |tree| two.run(tree))
         }
         _ => unreachable!(),
