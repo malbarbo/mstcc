@@ -59,6 +59,28 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity2<'a, G> {
         self.dfs();
     }
 
+    pub fn disconnect2(&mut self, (u, v): (Vertex<G>, Vertex<G>), (x, y): (Vertex<G>, Vertex<G>)) {
+        self.reset();
+        self.disconnect(u, v);
+        self.disconnect(x, y);
+    }
+
+    pub fn check_reconnect(&mut self,
+                     (u, v): (Vertex<G>, Vertex<G>),
+                     (x, y): (Vertex<G>, Vertex<G>))
+                     -> bool {
+        assert!(!self.is_connected(u, v));
+        assert!(!self.is_connected(x, y));
+
+        let mut con = [false; 3];
+        con[self.comp(u)] = true;
+        con[self.comp(v)] = true;
+        con[self.comp(x)] = true;
+        con[self.comp(y)] = true;
+
+        con[0] && con[1] && con[2]
+    }
+
     pub fn is_connected(&self, u: Vertex<G>, v: Vertex<G>) -> bool {
         self.comp(u) == self.comp(v)
     }
