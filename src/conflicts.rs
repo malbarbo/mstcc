@@ -5,10 +5,14 @@ use fera::graph::prelude::*;
 // local
 use MstCcProblem;
 
+// TODO: replace with OptionMax
+const NONE: usize = ::std::usize::MAX;
+
 pub struct TrackConflicts<'a> {
     p: &'a MstCcProblem, // TODO: only need p.cc and p.g
     edges: Vec<Edge<StaticGraph>>,
-    in_set: DefaultEdgePropMut<StaticGraph, bool>,
+    // position of e in edges or NONE if e is not in edges
+    pos: DefaultEdgePropMut<StaticGraph, usize>,
     conflicts: u32,
     // numbers of edges in the tree that conflicts with e
     cc: DefaultEdgePropMut<StaticGraph, u32>,
@@ -16,13 +20,11 @@ pub struct TrackConflicts<'a> {
 
 impl<'a> TrackConflicts<'a> {
     pub fn new(p: &'a MstCcProblem) -> Self {
-        let in_set = p.g.default_edge_prop(false);
-        let cc = p.g.default_edge_prop(0);
         TrackConflicts {
             p: p,
             edges: vec![],
-            in_set: in_set,
-            cc: cc,
+            pos: p.g.default_edge_prop(NONE),
+            cc: p.g.default_edge_prop(0),
             conflicts: 0,
         }
     }
@@ -39,7 +41,7 @@ impl<'a> TrackConflicts<'a> {
     pub fn reset(&mut self) {
         self.edges.clear();
         self.conflicts = 0;
-        self.in_set.set_values(self.p.g.edges(), false);
+        self.pos.set_values(self.p.g.edges(), NONE);
         self.cc.set_values(self.p.g.edges(), 0);
     }
 
@@ -49,13 +51,16 @@ impl<'a> TrackConflicts<'a> {
     }
 
     pub fn remove_edge(&mut self, rem: Edge<StaticGraph>) {
-        assert!(self.in_set[rem]);
-        self.in_set[rem] = false;
-        let p = self.edges.iter().position(|x| *x == rem).unwrap();
-        self.edges.remove(p);
+        let p = self.pos[rem];
+        assert!(p != NONE);
+        self.edges.swap_remove(p);
+        if p < self.edges.len() {
+            self.pos[self.edges[p]] = p;
+        }
+        self.pos[rem] = NONE;
         for &e in &self.p.cc[rem] {
             self.cc[e] -= 1;
-            if self.in_set[e] {
+            if self.pos[e] != NONE {
                 self.conflicts -= 1;
             }
         }
@@ -71,12 +76,13 @@ impl<'a> TrackConflicts<'a> {
     }
 
     pub fn add_edge(&mut self, add: Edge<StaticGraph>) {
-        assert!(!self.in_set[add]);
-        self.in_set[add] = true;
+        let p = self.pos[add];
+        assert!(p == NONE);
         self.edges.push(add);
+        self.pos[add] = self.edges.len() - 1;
         for &e in &self.p.cc[add] {
             self.cc[e] += 1;
-            if self.in_set[e] {
+            if self.pos[e] != NONE {
                 self.conflicts += 1;
             }
         }
@@ -87,7 +93,7 @@ impl<'a> TrackConflicts<'a> {
     }
 
     pub fn contains(&self, e: Edge<StaticGraph>) -> bool {
-        self.in_set[e]
+        self.pos[e] != NONE
     }
 
     pub fn num_conflicts_of(&self, e: Edge<StaticGraph>) -> u32 {
