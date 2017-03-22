@@ -36,7 +36,6 @@ impl<'a> OneEdgeReplacement<'a> {
         }
     }
 
-    #[inline(never)]
     pub fn run(&mut self, tree: &mut [Edge<StaticGraph>]) -> u32 {
         self.setup(tree);
 
@@ -59,7 +58,6 @@ impl<'a> OneEdgeReplacement<'a> {
         self.conflicts.total()
     }
 
-    #[inline(never)]
     pub fn one_replacement(&mut self, tree: &mut [Edge<StaticGraph>]) -> bool {
         self.check_conflicts();
 
@@ -82,7 +80,6 @@ impl<'a> OneEdgeReplacement<'a> {
         false
     }
 
-    #[inline(never)]
     fn sort(&mut self, tree: &mut [Edge<StaticGraph>]) {
         if self.sort {
             let p = &self.p;
@@ -94,7 +91,6 @@ impl<'a> OneEdgeReplacement<'a> {
         }
     }
 
-    #[inline(never)]
     fn find_replace(&self, rem: Edge<StaticGraph>) -> Option<usize> {
         for j in 0..self.non_tree_limit(rem) {
             let ins = self.non_tree[j];
@@ -148,7 +144,6 @@ impl<'a> OneEdgeReplacement<'a> {
         self.weight = weight;
     }
 
-    #[inline(never)]
     fn setup(&mut self, tree: &[Edge<StaticGraph>]) {
         self.connectivity.set_edges(&*tree);
 

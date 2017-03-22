@@ -44,7 +44,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         }
     }
 
-    #[inline(never)]
     pub fn run(&mut self, tree: &mut [Edge<StaticGraph>]) -> u32 {
         self.setup(tree);
 
@@ -70,7 +69,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         self.conflicts.total()
     }
 
-    #[inline(never)]
     pub fn two_replacement(&mut self, tree: &mut [Edge<StaticGraph>], s: usize) -> Option<usize> {
         self.check_conflicts();
 
@@ -101,7 +99,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         None
     }
 
-    #[inline(never)]
     fn sort(&mut self, tree: &mut [Edge<StaticGraph>]) {
         if self.sort {
             let p = &self.p;
@@ -113,11 +110,68 @@ impl<'a> TwoEdgeReplacement<'a> {
         }
     }
 
-    #[inline(never)]
-    fn find_replace(&mut self,
+
+    /*
+    fn find_replace2(&mut self,
                     ei: Edge<StaticGraph>,
                     ej: Edge<StaticGraph>)
                     -> Option<(usize, usize)> {
+
+        // FIXME: wei can conflict with wij
+        let wei = self.obj_edge(ei);
+        let wej = self.obj_edge(ej);
+
+        // TODO: use a better scheme to check connectivity
+        let mut connected = [false, false, false];
+        let mut new = [None, None];
+        let mut sub_w = wei + wej;
+
+        for k in 0..self.non_tree.len() {
+            let e = self.non_tree[k];
+            let we = self.obj_edge(e);
+
+            if we >= sub_w {
+                if self.sort {
+                    break
+                } else {
+                    continue
+                }
+            }
+
+            let (x, y) = self.p.g.ends(e);
+            let comp_x = self.connectivity.comp(x);
+            let comp_y = self.connectivity.comp(y);
+            if comp_x == comp_y || connected[comp_x] && connected[comp_y] {
+                continue;
+            }
+
+            self.conflicts.add_edge(e);
+            if new[0] == None {
+                new[0] = Some(k);
+                sub_w -= we;
+                connected[comp_x] = true;
+                connected[comp_y] = true;
+            } else {
+                new[1] = Some(k);
+                break;
+            }
+        }
+
+        match (new[0], new[1]) {
+            (Some(k), Some(l)) => Some((k, l)),
+            (Some(k), None) => {
+                self.conflicts.remove_edge(self.non_tree[k]);
+                None
+            },
+            _ => None,
+        }
+    }
+    */
+
+    fn find_replace(&mut self,
+                     ei: Edge<StaticGraph>,
+                     ej: Edge<StaticGraph>)
+                     -> Option<(usize, usize)> {
         self.separate_comps(ei, ej);
 
         self.find_replace_(ei, ej, 0, 1)
@@ -125,7 +179,6 @@ impl<'a> TwoEdgeReplacement<'a> {
             .or_else(|| self.find_replace_(ei, ej, 1, 2))
     }
 
-    #[inline(never)]
     fn separate_comps(&mut self, ei: Edge<StaticGraph>, ej: Edge<StaticGraph>) {
         self.c01.clear();
         self.c02.clear();
@@ -146,14 +199,6 @@ impl<'a> TwoEdgeReplacement<'a> {
                 _ => unreachable!(),
             }
         }
-
-        /*
-        let w = &self.p.w;
-        let non_tree = &self.non_tree;
-        self.c01.sort_by_key(|i| w.get(non_tree[*i]));
-        self.c02.sort_by_key(|i| w.get(non_tree[*i]));
-        self.c12.sort_by_key(|i| w.get(non_tree[*i]));
-        */
     }
 
     fn non_tree_limit(&self, ei: Edge<StaticGraph>, ej: Edge<StaticGraph>) -> usize {
@@ -169,7 +214,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         }
     }
 
-    #[inline(never)]
     fn find_replace_(&mut self,
                      ei: Edge<StaticGraph>,
                      ej: Edge<StaticGraph>,
@@ -239,7 +283,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         self.obj = self.p.obj(self.weight, self.num_conflicts);
     }
 
-    #[inline(never)]
     fn setup(&mut self, tree: &[Edge<StaticGraph>]) {
         self.connectivity.set_edges(&*tree);
 
