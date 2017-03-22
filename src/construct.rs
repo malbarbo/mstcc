@@ -1,15 +1,16 @@
-use {MstCcProblem, TrackConflicts};
-
+// external
 use fera::fun::vec;
 use fera::graph::prelude::*;
 use fera::graph::props::FnProp;
 use fera::graph::unionfind::WithUnionFind;
 
-pub fn new_greedy(p: &MstCcProblem) -> Vec<Edge<StaticGraph>> {
+// local
+use {MstCcProblem, TrackConflicts};
+
+pub fn new_greedy(p: &MstCcProblem, tree: &mut Vec<Edge<StaticGraph>>) {
     let mut edges = vec(p.g.edges());
     let mut conflicts = TrackConflicts::new(&p);
     let mut ds = p.g.new_unionfind();
-    let mut tree = vec![];
     let mut start = 0;
     while ds.num_sets() > 1 {
         edges[start..].sort_by_prop(FnProp(|e| p.obj(p.w.get(e), conflicts[e])));
@@ -24,5 +25,4 @@ pub fn new_greedy(p: &MstCcProblem) -> Vec<Edge<StaticGraph>> {
             start += i;
         }
     }
-    tree
 }

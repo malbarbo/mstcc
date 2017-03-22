@@ -26,6 +26,9 @@ pub use one::*;
 pub use two::*;
 pub use utils::*;
 
+// system
+use std::cell::Cell;
+
 // external
 use fera::graph::prelude::*;
 
@@ -35,12 +38,12 @@ pub struct MstCcProblem {
     pub w: DefaultEdgePropMut<StaticGraph, u32>,
     pub cc: DefaultEdgePropMut<StaticGraph, Vec<Edge<StaticGraph>>>,
     pub num_cc: usize,
-    pub alpha: u32,
-    pub beta: u32,
+    pub alpha: Cell<u32>,
+    pub beta: Cell<u32>,
 }
 
 impl MstCcProblem {
     fn obj(&self, weight: u32, num_conflicts: u32) -> u32 {
-        self.alpha * weight + self.beta * num_conflicts
+        self.alpha.get() * weight + self.beta.get() * num_conflicts
     }
 }

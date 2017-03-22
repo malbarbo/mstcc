@@ -13,10 +13,10 @@ extern crate rand;
 use std::time::Instant;
 
 // external
-use fera::ext::VecExt;
 use fera::fun::vec;
 use fera::graph::kruskal::Kruskal;
 use fera::graph::prelude::*;
+use rand::Rng;
 
 // local
 use mstcc::*;
@@ -29,42 +29,63 @@ pub fn main() {
 
     info!("Using {:?}", args.seed);
 
-    let mut p = read_sammer_urrutia(&args.file).unwrap();
+    let p = read_sammer_urrutia(&args.file).unwrap();
     let mut rng = args.seed.new_xor_shift_rng();
-    p.alpha = args.greedy_alpha;
-    p.beta = args.greedy_beta;
+    let mut edges = vec(p.g.edges());
+    let mut build = |tree: &mut Vec<_>| {
+        p.alpha.set(args.greedy_alpha);
+        p.beta.set(args.greedy_beta);
 
-    let mut tree = match args.init.as_str() {
-        "random" => vec(p.g.kruskal().edges(vec(p.g.edges()).shuffled(&mut rng))),
-        "kruskal" => vec(p.g.kruskal().weight(&p.w)),
-        "greedy" => new_greedy(&p),
-        _ => unreachable!(),
+        tree.clear();
+        match args.init.as_str() {
+            "random" => {
+                rng.shuffle(&mut edges);
+                tree.extend(p.g.kruskal().edges(&edges));
+            },
+            "kruskal" => tree.extend(p.g.kruskal().weight(&p.w)),
+            "greedy" => new_greedy(&p, tree),
+            _ => unreachable!(),
+        };
+
+        p.alpha.set(args.alpha);
+        p.beta.set(args.beta);
     };
 
-    p.alpha = args.alpha;
-    p.beta = args.beta;
+    let mut tree = vec![];
+    build(&mut tree);
+
+    let mut rng = args.seed.new_xor_shift_rng();
 
     let mut ils = Ils {
         p: &p,
         max_iters: args.ils_max_iters,
         max_iters_no_improv: args.ils_max_iters_no_improv,
         num_excludes: args.ils_excludes,
+        iters_restart: args.ils_restart,
+        iters_restart_to_best: args.ils_restart_to_best,
+        restart: build,
         stop_on_feasible: args.stop_on_feasible,
     };
 
+    let mut one = OneEdgeReplacement::new(&p);
+    one.sort = args.sort;
+    one.stop_on_feasible = args.stop_on_feasible;
+
+    let mut two = TwoEdgeReplacement::new(&p);
+    two.sort = args.sort;
+    two.stop_on_feasible = args.stop_on_feasible;
+
     let conflicts = match args.alg.as_str() {
-        "2ex" => OneEdgeReplacement::new(&p).run(&mut tree),
-        "4ex" => TwoEdgeReplacement::new(&p).run(&mut tree),
-        "ils-2ex" => {
-            let mut one = OneEdgeReplacement::new(&p);
-            one.sort = args.sort;
-            one.stop_on_feasible = args.stop_on_feasible;
-            ils.run(&mut tree, &mut rng, |tree| one.run(tree))
+        "2ex" => one.run(&mut tree),
+        "4ex" => two.run(&mut tree),
+        "2ex-4ex" => {
+            one.run(&mut tree);
+            two.run(&mut tree)
         }
-        "ils-4ex" => {
-            let mut two = TwoEdgeReplacement::new(&p);
-            two.sort = args.sort;
-            two.stop_on_feasible = args.stop_on_feasible;
+        "ils-2ex" => ils.run(&mut tree, &mut rng, |tree| one.run(tree)),
+        "ils-4ex" => ils.run(&mut tree, &mut rng, |tree| two.run(tree)),
+        "ils-2ex-4ex" => {
+            ils.run(&mut tree, &mut rng, |tree| one.run(tree));
             ils.run(&mut tree, &mut rng, |tree| two.run(tree))
         }
         _ => unreachable!(),
@@ -93,6 +114,8 @@ struct Args {
     ils_max_iters: u32,
     ils_max_iters_no_improv: u32,
     ils_excludes: u32,
+    ils_restart: u32,
+    ils_restart_to_best: u32,
     init: String,
     alg: String,
     file: String,
@@ -118,11 +141,17 @@ fn args() -> Args {
             default_value("10000")
             "The beta value used in objective function in the greedy init heuristic")
         (@arg ils_max_iters: --("ils-max-iters")
-            default_value("100")
+            default_value("1000")
             "Maximum number of iterations for the ils algorithm")
         (@arg ils_max_iters_no_improv: --("ils-max-iters-no-improv")
-            default_value("10")
+            default_value("1000000000")
             "Maximum number of iterations without improvement for the ils algorithm")
+        (@arg ils_restart: --("ils-restart")
+            default_value("1000000000")
+            "Maximum number of iterations without improvement for the ils algorithm to restart")
+        (@arg ils_restart_to_best: --("ils-restart-to-best")
+            default_value("1000000000")
+            "Maximum number of iterations without improvement for the ils algorithm to restart")
         (@arg ils_excludes: --("ils-excludes")
             default_value("1")
             "Number of edges to exclude in the perturbation phase of the ils algorithm")
@@ -138,8 +167,10 @@ fn args() -> Args {
         (@arg alg: +required
             possible_value("2ex")
             possible_value("4ex")
+            possible_value("2ex-4ex")
             possible_value("ils-2ex")
             possible_value("ils-4ex")
+            possible_value("ils-2ex-4ex")
             "The algorithm to run")
         (arg: arg_input())
     );
@@ -159,6 +190,8 @@ fn args() -> Args {
         ils_max_iters: value_t_or_exit!(matches, "ils_max_iters", u32),
         ils_max_iters_no_improv: value_t_or_exit!(matches, "ils_max_iters_no_improv", u32),
         ils_excludes: value_t_or_exit!(matches, "ils_excludes", u32),
+        ils_restart: value_t_or_exit!(matches, "ils_restart", u32),
+        ils_restart_to_best: value_t_or_exit!(matches, "ils_restart_to_best", u32),
         alg: matches.value_of("alg").unwrap().into(),
         file: matches.value_of("input").unwrap().into(),
     }
