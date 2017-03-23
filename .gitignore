@@ -1,5 +1,6 @@
-target/
-results/
-perf*
-**/*.rs.bk
 __pycache__/
+data/
+perf*
+results/
+target/
+**/*.rs.bk
