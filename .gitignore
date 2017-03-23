@@ -1,0 +1,6 @@
+__pycache__/
+data/
+perf*
+results/
+target/
+**/*.rs.bk
