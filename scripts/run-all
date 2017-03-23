@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -ex
+
+RESULTS="../results/$(date +%Y-%m-%d-%H-%M-%S)"
+
+cd $(dirname $0)
+
+mkdir -p $RESULTS
+
+# feasible - type 1
+./run-feasible-type1.py random ils-2ex --ils-excludes 1 > $RESULTS/feasible-type1-ils-2ex-x1
+./run-feasible-type1.py random ils-2ex --ils-excludes 3 > $RESULTS/feasible-type1-ils-2ex-x3
+
+./run-feasible-type1.py random ils-4ex --ils-excludes 1 > $RESULTS/feasible-type1-ils-4ex-x1
+./run-feasible-type1.py random ils-4ex --ils-excludes 3 > $RESULTS/feasible-type1-ils-4ex-x3
+
+# type 2
+./run-type2.py random ils-2ex --ils-excludes 1 > $RESULTS/type2-ils-2ex-x1
+./run-type2.py random ils-2ex --ils-excludes 3 > $RESULTS/type2-ils-2ex-x3
+
+./run-type2.py random ils-4ex --ils-excludes 1 > $RESULTS/type2-ils-4ex-x1
+./run-type2.py random ils-4ex --ils-excludes 3 > $RESULTS/type2-ils-4ex-x3
