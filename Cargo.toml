@@ -15,6 +15,3 @@ features = ["ext", "fun", "graph"]
 
 [dev-dependencies]
 itertools = "0.5"
-
-[profile.release]
-lto = true
