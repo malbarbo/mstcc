@@ -1,24 +1,11 @@
 #!/usr/bin/python3
 
+from natsort import natsorted
+from tabulate import tabulate
 import csv
+import numpy as np
 import os
 import sys
-import numpy as np
-
-
-ALLOW = [
-    'z50-200-199.gcc',
-    'z50-200-398.gcc',
-    'z50-200-597.gcc',
-    'z50-200-995.gcc',
-    'z100-300-448.gcc',
-    'z100-300-897.gcc',
-    'z100-500-1247.gcc',
-    'z100-500-2495.gcc',
-    'z100-500-3741.gcc',
-    'z200-600-1797.gcc',
-    'z200-800-3196.gcc',
-]
 
 NAME = 'Name'
 TIME = 'Time'
@@ -31,14 +18,17 @@ def summary(case, results):
     weight = np.array(list(r[WEIGHT] for r in results))
 
     row = [case, len(results)]
-    row.append('{:0.2f} ± {:0.2f}'.format(np.mean(time), np.std(time)))
-    row.append('{}'.format(np.median(weight)))
-
+    row.append('{}'.format(int(round(np.median(weight)))))
     m = np.min(weight)
-    row.append('{} / {}'.format(m, sum(1 for x in weight if x == m)))
+    row.append(int(m))
+    row.append(sum(1 for x in weight if x == m))
+
+    row.append(np.median(time))
+    row.append(np.sum(time))
 
     m = np.min(conflicts)
-    row.append('{} / {}'.format(m, sum(1 for x in conflicts if x == m)))
+    row.append(int(m))
+    row.append(sum(1 for x in conflicts if x == m))
 
     return row
 
@@ -53,21 +43,21 @@ def run(filename):
 
     table = [[
         'Name', 'Sam',
-        'Time (s)',
-        'Weight', 'Min Weight / Freq',
-        'Min Conflicts / Freq'
+        'Obj', 'Best', 'Freq',
+        'Time (s)', 'Total Time (s)',
+        'Min Conf', 'Freq'
     ]]
+
+    cases = natsorted(line[NAME] for line in lines)
     saw = set()
-    for line in lines:
-        case = line[NAME]
-        if case in saw or case not in ALLOW:
+    for case in cases:
+        if case in saw:
             continue
         saw.add(case)
         results = list(line for line in lines if line[NAME] == case)
         table.append(summary(case, results))
 
-    for row in table:
-        print('{:21}  {:4}  {:14}  {:10}  {:18}  {:8} '.format(*row))
+    print(tabulate(table, headers='firstrow', floatfmt=".03f"))
 
 
 def main():
@@ -76,9 +66,14 @@ def main():
         print('USAGE: {} directory'.format(sys.argv[0]))
         sys.exit(1)
 
-    d = sys.argv[1]
-    for f in sorted(os.listdir(d)):
-        f = os.path.join(d, f)
+    path = sys.argv[1]
+
+    if os.path.isdir(path):
+        files = natsorted(os.path.join(path, f) for f in os.listdir(path))
+    else:
+        files = [path]
+
+    for f in files:
         print(f)
         run(f)
         print()
