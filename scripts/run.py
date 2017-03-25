@@ -35,6 +35,7 @@ ALL_TYPE2 = list(DIR_TYPE2 + '/' + f for f in ALL_TYPE2)
 def run_all(prog, cases, times):
     print_header()
     for i in range(times):
+        eprint('Iter {}/{}'.format(i, times))
         for case in cases:
             m = case.split('-')[1]
             run(prog, case, m)
