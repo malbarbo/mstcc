@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python3 -B
 
 from natsort import natsorted
 from tabulate import tabulate
@@ -7,15 +7,15 @@ import numpy as np
 import os
 import sys
 
-NAME = 'Name'
+INSTANCE = 'Instance'
 TIME = 'Time'
 CONFLICTS = 'Conflicts'
-WEIGHT = 'Weight'
+OBJ = 'Obj'
 
 def summary(case, results):
     time = np.array(list(r[TIME] for r in results))
     conflicts = np.array(list(r[CONFLICTS] for r in results))
-    weight = np.array(list(r[WEIGHT] for r in results))
+    weight = np.array(list(r[OBJ] for r in results))
 
     row = [case, len(results)]
     row.append('{}'.format(int(round(np.median(weight)))))
@@ -37,24 +37,24 @@ def run(filename):
     lines = list(csv.DictReader(open(filename)))
     for line in lines:
         line[CONFLICTS] = int(line[CONFLICTS])
-        line[WEIGHT] = int(line[WEIGHT])
+        line[OBJ] = int(line[OBJ])
         line[TIME] = float(line[TIME])
 
 
     table = [[
-        'Name', 'Sam',
+        'Instance', 'Sam',
         'Obj', 'Best', 'Freq',
         'Time (s)', 'Total Time (s)',
         'Min Conf', 'Freq'
     ]]
 
-    cases = natsorted(line[NAME] for line in lines)
+    cases = natsorted(line[INSTANCE] for line in lines)
     saw = set()
     for case in cases:
         if case in saw:
             continue
         saw.add(case)
-        results = list(line for line in lines if line[NAME] == case)
+        results = list(line for line in lines if line[INSTANCE] == case)
         table.append(summary(case, results))
 
     print(tabulate(table, headers='firstrow', floatfmt=".03f"))
