@@ -16,7 +16,12 @@ fn test0() {
         let g = StaticGraph::new_random_tree(n, &mut rng);
         let track_con = TrackConnectivity2::new(&g);
         for (u, v) in g.vertices().tuple_combinations() {
-            assert!(track_con.is_connected(u, v), "is_connected({:?}, {:?})", u, v);
+            assert!(
+                track_con.is_connected(u, v),
+                "is_connected({:?}, {:?})",
+                u,
+                v
+            );
         }
     }
 }
@@ -37,12 +42,14 @@ fn test1() {
             track_con.disconnect(u, v);
 
             for (u, v) in g.vertices().tuple_combinations() {
-                assert_eq!(comps.is_connected(u, v),
-                           track_con.is_connected(u, v),
-                           "n = {}, u = {}, v = {})",
-                           n,
-                           u,
-                           v);
+                assert_eq!(
+                    comps.is_connected(u, v),
+                    track_con.is_connected(u, v),
+                    "n = {}, u = {}, v = {})",
+                    n,
+                    u,
+                    v
+                );
             }
         }
     }
@@ -66,14 +73,16 @@ fn test2() {
             track_con.disconnect(u, v);
 
             for (u, v) in g.vertices().tuple_combinations() {
-                assert_eq!(comps.is_connected(u, v),
-                           track_con.is_connected(u, v),
-                           "n = {}, u = {} - comp {}, v = {} - comp {}",
-                           n,
-                           u,
-                           track_con.comp(u),
-                           v,
-                           track_con.comp(v));
+                assert_eq!(
+                    comps.is_connected(u, v),
+                    track_con.is_connected(u, v),
+                    "n = {}, u = {} - comp {}, v = {} - comp {}",
+                    n,
+                    u,
+                    track_con.comp(u),
+                    v,
+                    track_con.comp(v)
+                );
             }
         }
     }

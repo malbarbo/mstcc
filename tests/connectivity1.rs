@@ -24,12 +24,14 @@ fn test1() {
             track_con.disconnect(u, v);
 
             for (u, v) in g.vertices().tuple_combinations() {
-                assert_eq!(comps.is_connected(u, v),
-                           track_con.is_connected(u, v),
-                           "n = {}, u = {}, v = {})",
-                           n,
-                           u,
-                           v);
+                assert_eq!(
+                    comps.is_connected(u, v),
+                    track_con.is_connected(u, v),
+                    "n = {}, u = {}, v = {})",
+                    n,
+                    u,
+                    v
+                );
             }
         }
     }

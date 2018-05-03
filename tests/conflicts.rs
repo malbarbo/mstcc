@@ -1,6 +1,5 @@
-
-extern crate mstcc;
 extern crate fera;
+extern crate mstcc;
 
 use fera::graph::prelude::*;
 use mstcc::{MstCcProblem, TrackConflicts};

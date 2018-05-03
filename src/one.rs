@@ -2,13 +2,13 @@
 use std::mem;
 
 // external
+use fera::graph::algs::Trees;
 use fera::graph::prelude::*;
 use fera::graph::props::FnProp;
 use fera::graph::sum_prop;
-use fera::graph::algs::Trees;
 
 // local
-use {MstCcProblem, TrackConflicts, TrackConnectivity1, log_improvement};
+use {log_improvement, MstCcProblem, TrackConflicts, TrackConnectivity1};
 
 pub struct OneEdgeReplacement<'a> {
     p: &'a MstCcProblem,
@@ -117,7 +117,9 @@ impl<'a> OneEdgeReplacement<'a> {
             let w = self.p.w.get(rem);
             let c = self.conflicts[rem] + 1;
             let key = self.p.obj(w, c);
-            match self.non_tree.binary_search_by_key(&key, |e| self.obj_edge(*e)) {
+            match self.non_tree
+                .binary_search_by_key(&key, |e| self.obj_edge(*e))
+            {
                 Ok(m) | Err(m) => m,
             }
         } else {

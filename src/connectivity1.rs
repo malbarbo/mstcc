@@ -1,10 +1,10 @@
 // external
 use fera::fun::first;
+use fera::graph::algs::Trees;
 use fera::graph::params::IntoOwned;
 use fera::graph::prelude::*;
 use fera::graph::props::{Color, IgnoreWriteProp};
 use fera::graph::traverse::{OnDiscoverVertex, OnFinishVertex, RecursiveDfs, StampTime, Time};
-use fera::graph::algs::Trees;
 
 pub struct TrackConnectivity1<'a, G: 'a + IncidenceGraph> {
     g: SpanningSubgraph<'a, G>,
@@ -36,8 +36,10 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity1<'a, G> {
         let time = Time::default();
         // g is a tree (acyclic and connected), so we can ignore the color changes
         self.g
-            .recursive_dfs((OnDiscoverVertex(StampTime(&time, &mut self.discover)),
-                            OnFinishVertex(StampTime(&time, &mut self.finish))))
+            .recursive_dfs((
+                OnDiscoverVertex(StampTime(&time, &mut self.discover)),
+                OnFinishVertex(StampTime(&time, &mut self.finish)),
+            ))
             .root(self.root)
             .color(&mut IgnoreWriteProp::new_vertex_prop(&self.g, Color::White))
             .run();
@@ -49,8 +51,9 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity1<'a, G> {
     }
 
     pub fn set_edges<I>(&mut self, iter: I)
-        where I: IntoIterator,
-              I::Item: IntoOwned<Edge<G>>
+    where
+        I: IntoIterator,
+        I::Item: IntoOwned<Edge<G>>,
     {
         self.g.clear_edges();
         self.g.add_edges(iter);

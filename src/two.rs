@@ -2,13 +2,13 @@
 use std::mem;
 
 // external
+use fera::graph::algs::Trees;
 use fera::graph::prelude::*;
 use fera::graph::props::FnProp;
-use fera::graph::algs::Trees;
 use fera::graph::sum_prop;
 
 // local
-use {MstCcProblem, TrackConflicts, TrackConnectivity2, log_improvement};
+use {log_improvement, MstCcProblem, TrackConflicts, TrackConnectivity2};
 
 pub struct TwoEdgeReplacement<'a> {
     p: &'a MstCcProblem,
@@ -111,7 +111,6 @@ impl<'a> TwoEdgeReplacement<'a> {
         }
     }
 
-
     /*
     fn find_replace2(&mut self,
                     ei: Edge<StaticGraph>,
@@ -169,10 +168,11 @@ impl<'a> TwoEdgeReplacement<'a> {
     }
     */
 
-    fn find_replace(&mut self,
-                     ei: Edge<StaticGraph>,
-                     ej: Edge<StaticGraph>)
-                     -> Option<(usize, usize)> {
+    fn find_replace(
+        &mut self,
+        ei: Edge<StaticGraph>,
+        ej: Edge<StaticGraph>,
+    ) -> Option<(usize, usize)> {
         self.separate_comps(ei, ej);
 
         self.find_replace_(ei, ej, 0, 1)
@@ -207,7 +207,9 @@ impl<'a> TwoEdgeReplacement<'a> {
             let w = self.p.w.get(ei) + self.p.w.get(ej);
             let c = self.conflicts[ei] + self.conflicts[ej] + 2;
             let key = self.p.obj(w, c);
-            match self.non_tree.binary_search_by_key(&key, |e| self.obj_edge(*e)) {
+            match self.non_tree
+                .binary_search_by_key(&key, |e| self.obj_edge(*e))
+            {
                 Ok(to) | Err(to) => to,
             }
         } else {
@@ -215,12 +217,13 @@ impl<'a> TwoEdgeReplacement<'a> {
         }
     }
 
-    fn find_replace_(&mut self,
-                     ei: Edge<StaticGraph>,
-                     ej: Edge<StaticGraph>,
-                     a: usize,
-                     b: usize)
-                     -> Option<(usize, usize)> {
+    fn find_replace_(
+        &mut self,
+        ei: Edge<StaticGraph>,
+        ej: Edge<StaticGraph>,
+        a: usize,
+        b: usize,
+    ) -> Option<(usize, usize)> {
         let aa = if a == 0 {
             &self.c01
         } else if a == 1 {
@@ -264,10 +267,12 @@ impl<'a> TwoEdgeReplacement<'a> {
         None
     }
 
-    fn replace(&mut self,
-               tree: &mut [Edge<StaticGraph>],
-               (i, j): (usize, usize),
-               (k, l): (usize, usize)) {
+    fn replace(
+        &mut self,
+        tree: &mut [Edge<StaticGraph>],
+        (i, j): (usize, usize),
+        (k, l): (usize, usize),
+    ) {
         mem::swap(&mut tree[i], &mut self.non_tree[k]);
         mem::swap(&mut tree[j], &mut self.non_tree[l]);
 

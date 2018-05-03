@@ -1,7 +1,7 @@
 // system
 use std::error::Error;
-use std::io::{BufReader, BufRead};
 use std::fs::File;
+use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
 // external
@@ -77,9 +77,10 @@ pub fn read_sammer_urrutia(file: &str) -> Result<MstCcProblem, Box<Error>> {
 }
 
 fn parse_next<I, T>(iter: &mut I) -> Result<T, T::Err>
-    where I: Iterator,
-          I::Item: AsRef<str>,
-          T: FromStr
+where
+    I: Iterator,
+    I::Item: AsRef<str>,
+    T: FromStr,
 {
     iter.next().unwrap().as_ref().parse()
 }

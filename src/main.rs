@@ -15,8 +15,8 @@ use std::time::Instant;
 // external
 use fera::fun::vec;
 use fera::graph::algs::Kruskal;
-use fera::graph::sum_prop;
 use fera::graph::prelude::*;
+use fera::graph::sum_prop;
 use rand::Rng;
 
 // local
@@ -42,7 +42,7 @@ pub fn main() {
             "random" => {
                 rng.shuffle(&mut edges);
                 tree.extend(p.g.kruskal().edges(&edges));
-            },
+            }
             "kruskal" => tree.extend(p.g.kruskal().weight(&p.w)),
             "greedy" => new_greedy(&p, tree),
             _ => unreachable!(),

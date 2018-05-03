@@ -1,13 +1,14 @@
 // system
-use std::str::FromStr;
 use std::num::ParseIntError;
+use std::str::FromStr;
 
 // external
 use clap::Arg;
 use rand::{self, Rng, SeedableRng, XorShiftRng};
 
 pub fn partition<T, F>(xs: &mut [T], mut pred: F) -> usize
-    where F: FnMut(&T) -> bool
+where
+    F: FnMut(&T) -> bool,
 {
     if xs.is_empty() {
         return 0;
@@ -27,7 +28,6 @@ pub fn partition<T, F>(xs: &mut [T], mut pred: F) -> usize
     i
 }
 
-
 // Log
 
 pub fn init_logger(level: &str) {
@@ -35,23 +35,31 @@ pub fn init_logger(level: &str) {
     use log::LevelFilter;
 
     if let Ok(filter) = LevelFilter::from_str(level) {
-        Builder::new()
-            .filter(None, filter)
-            .init();
+        Builder::new().filter(None, filter).init();
 
         debug!("Logging at {:?} level", filter);
     }
 }
 
-
 pub fn log_improvement(target: &str, old: u32, new: u32) {
-    debug!(target: target, "{} -> {} ({:.02}%)", old, new, improvement_percentage(old, new));
+    debug!(
+        target: target,
+        "{} -> {} ({:.02}%)",
+        old,
+        new,
+        improvement_percentage(old, new)
+    );
 }
 
 pub fn log_improvement_best(target: &str, old: u32, new: u32) {
-    info!(target: target, "best {} -> {} ({:.02}%)", old, new, improvement_percentage(old, new));
+    info!(
+        target: target,
+        "best {} -> {} ({:.02}%)",
+        old,
+        new,
+        improvement_percentage(old, new)
+    );
 }
-
 
 fn improvement_percentage(old: u32, new: u32) -> f64 {
     if old == 0 {
@@ -62,7 +70,6 @@ fn improvement_percentage(old: u32, new: u32) -> f64 {
         -100.0 * (new - old) as f64 / old as f64
     }
 }
-
 
 // Args
 
@@ -88,14 +95,15 @@ impl Seed {
     }
 }
 
-
 pub fn arg_seed() -> Arg<'static, 'static> {
     Arg::with_name("seed")
         .short("s")
         .long("seed")
         .takes_value(true)
-        .help("The seed used in the random number generator. \
-              A random value is used none is specified")
+        .help(
+            "The seed used in the random number generator. \
+             A random value is used none is specified",
+        )
 }
 
 pub fn arg_log() -> Arg<'static, 'static> {

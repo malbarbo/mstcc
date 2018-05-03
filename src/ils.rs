@@ -3,9 +3,9 @@ use std::mem;
 
 // external
 use fera::fun::vec;
+use fera::graph::algs::Kruskal;
 use fera::graph::prelude::*;
 use fera::graph::sum_prop;
-use fera::graph::algs::Kruskal;
 use rand::{Rng, XorShiftRng};
 
 // local
@@ -24,13 +24,15 @@ pub struct Ils<'a, R> {
 
 impl<'a, R> Ils<'a, R> {
     #[inline(never)]
-    pub fn run<F>(&mut self,
-                  tree: &mut Vec<Edge<StaticGraph>>,
-                  rng: &mut XorShiftRng,
-                  mut local_search: F)
-                  -> u32
-        where F: FnMut(&mut Vec<Edge<StaticGraph>>) -> u32,
-              R: FnMut(&mut Vec<Edge<StaticGraph>>)
+    pub fn run<F>(
+        &mut self,
+        tree: &mut Vec<Edge<StaticGraph>>,
+        rng: &mut XorShiftRng,
+        mut local_search: F,
+    ) -> u32
+    where
+        F: FnMut(&mut Vec<Edge<StaticGraph>>) -> u32,
+        R: FnMut(&mut Vec<Edge<StaticGraph>>),
     {
         let (g, w) = (&self.p.g, &self.p.w);
         let mut edges = vec(g.edges());
@@ -52,7 +54,10 @@ impl<'a, R> Ils<'a, R> {
             let obj = self.p.obj(weight, num_conflicts);
             if obj < best_obj {
                 info!("ils - iter      {}", iter);
-                info!("ils - conflicts {} -> {}", best_num_conflicts, num_conflicts);
+                info!(
+                    "ils - conflicts {} -> {}",
+                    best_num_conflicts, num_conflicts
+                );
                 info!("ils - weight    {} -> {}", best_weight, weight);
                 best_num_conflicts = num_conflicts;
                 best_weight = weight;
@@ -73,7 +78,7 @@ impl<'a, R> Ils<'a, R> {
                     tree.clear();
                     (self.restart)(tree);
                     iters_restart = 0;
-                    continue
+                    continue;
                 }
 
                 iters_restart_to_best += 1;
@@ -100,7 +105,8 @@ impl<'a, R> Ils<'a, R> {
                 // FIXME: use sample without replacement
                 rng.shuffle(&mut edges);
                 {
-                    let edges = tree.iter().chain(edges.iter().filter(|e| !exclude.contains(*e)));
+                    let edges = tree.iter()
+                        .chain(edges.iter().filter(|e| !exclude.contains(*e)));
                     tmp.extend(g.kruskal().edges(edges));
                 }
                 exclude.clear();

@@ -33,8 +33,9 @@ impl<'a> TrackConflicts<'a> {
     }
 
     pub fn with_edges<I>(p: &'a MstCcProblem, edges: I) -> Self
-        where I: IntoIterator,
-              I::Item: IntoOwned<Edge<StaticGraph>>
+    where
+        I: IntoIterator,
+        I::Item: IntoOwned<Edge<StaticGraph>>,
     {
         let mut t = Self::new(p);
         t.add_edges(edges);
@@ -70,8 +71,9 @@ impl<'a> TrackConflicts<'a> {
     }
 
     pub fn add_edges<I>(&mut self, edges: I)
-        where I: IntoIterator,
-              I::Item: IntoOwned<Edge<StaticGraph>>
+    where
+        I: IntoIterator,
+        I::Item: IntoOwned<Edge<StaticGraph>>,
     {
         for e in edges {
             self.add_edge(e.into_owned())
