@@ -8,6 +8,13 @@ cd $(dirname $0)
 
 mkdir -p $RESULTS
 
+# stop on feasible - type 1
+./run-feasible-type1.py random ils-2ex --ils-excludes 1 --stop-on-feasible > $RESULTS/stop-feasible-type1-ils-2ex-x1
+./run-feasible-type1.py random ils-2ex --ils-excludes 3 --stop-on-feasible > $RESULTS/stop-feasible-type1-ils-2ex-x3
+
+./run-feasible-type1.py random ils-4ex --ils-excludes 1 --stop-on-feasible > $RESULTS/stop-feasible-type1-ils-4ex-x1
+./run-feasible-type1.py random ils-4ex --ils-excludes 3 --stop-on-feasible > $RESULTS/stop-feasible-type1-ils-4ex-x3
+
 # feasible - type 1
 ./run-feasible-type1.py random ils-2ex --ils-excludes 1 > $RESULTS/feasible-type1-ils-2ex-x1
 ./run-feasible-type1.py random ils-2ex --ils-excludes 3 > $RESULTS/feasible-type1-ils-2ex-x3
