@@ -31,14 +31,13 @@ pub fn partition<T, F>(xs: &mut [T], mut pred: F) -> usize
 // Log
 
 pub fn init_logger(level: &str) {
-    use env_logger::LogBuilder;
-    use log::LogLevelFilter;
+    use env_logger::Builder;
+    use log::LevelFilter;
 
-    if let Ok(filter) = LogLevelFilter::from_str(level) {
-        LogBuilder::new()
+    if let Ok(filter) = LevelFilter::from_str(level) {
+        Builder::new()
             .filter(None, filter)
-            .init()
-            .expect("Init logger");
+            .init();
 
         debug!("Logging at {:?} level", filter);
     }

@@ -1,10 +1,10 @@
 // external
 use fera::fun::first;
-use fera::graph::ext::IntoOwned;
+use fera::graph::params::IntoOwned;
 use fera::graph::prelude::*;
 use fera::graph::props::{Color, IgnoreWriteProp};
 use fera::graph::traverse::{OnDiscoverVertex, OnFinishVertex, RecursiveDfs, StampTime, Time};
-use fera::graph::trees::Trees;
+use fera::graph::algs::Trees;
 
 pub struct TrackConnectivity1<'a, G: 'a + IncidenceGraph> {
     g: SpanningSubgraph<'a, G>,

@@ -2,7 +2,7 @@
 use std::ops::Index;
 
 // external
-use fera::graph::ext::IntoOwned;
+use fera::graph::params::IntoOwned;
 use fera::graph::prelude::*;
 
 // local

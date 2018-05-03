@@ -4,7 +4,8 @@ use std::mem;
 // external
 use fera::fun::vec;
 use fera::graph::prelude::*;
-use fera::graph::kruskal::Kruskal;
+use fera::graph::sum_prop;
+use fera::graph::algs::Kruskal;
 use rand::{Rng, XorShiftRng};
 
 // local

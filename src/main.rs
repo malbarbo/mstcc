@@ -14,7 +14,8 @@ use std::time::Instant;
 
 // external
 use fera::fun::vec;
-use fera::graph::kruskal::Kruskal;
+use fera::graph::algs::Kruskal;
+use fera::graph::sum_prop;
 use fera::graph::prelude::*;
 use rand::Rng;
 

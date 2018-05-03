@@ -4,7 +4,8 @@ use std::mem;
 // external
 use fera::graph::prelude::*;
 use fera::graph::props::FnProp;
-use fera::graph::trees::Trees;
+use fera::graph::algs::Trees;
+use fera::graph::sum_prop;
 
 // local
 use {MstCcProblem, TrackConflicts, TrackConnectivity2, log_improvement};

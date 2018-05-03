@@ -3,7 +3,7 @@ extern crate itertools;
 extern crate mstcc;
 extern crate rand;
 
-use fera::graph::components::Components;
+use fera::graph::algs::Components;
 use fera::graph::prelude::*;
 use itertools::Itertools;
 use mstcc::TrackConnectivity1;
