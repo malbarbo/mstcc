@@ -9,7 +9,7 @@ extern crate fera;
 extern crate mstcc;
 extern crate rand;
 
-// system
+// internal
 use std::time::Instant;
 
 // external
@@ -93,7 +93,7 @@ pub fn main() {
     };
 
     let elapsed = start.elapsed();
-    let elapsed = elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 / 1_000_000_000.0;
+    let elapsed = elapsed.as_secs() as f64 + f64::from(elapsed.subsec_nanos()) / 1_000_000_000.0;
 
     let weight: u32 = sum_prop(&p.w, &tree);
     print!("{},{:.02},{},{},", p.name, elapsed, conflicts, weight);

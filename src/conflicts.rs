@@ -24,7 +24,7 @@ pub struct TrackConflicts<'a> {
 impl<'a> TrackConflicts<'a> {
     pub fn new(p: &'a MstCcProblem) -> Self {
         TrackConflicts {
-            p: p,
+            p,
             edges: vec![],
             pos: p.g.default_edge_prop(NONE),
             cc: p.g.default_edge_prop(0),

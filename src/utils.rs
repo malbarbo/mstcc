@@ -65,9 +65,9 @@ fn improvement_percentage(old: u32, new: u32) -> f64 {
     if old == 0 {
         0.0
     } else if old > new {
-        100.0 * (old - new) as f64 / old as f64
+        100.0 * f64::from(old - new) / f64::from(old)
     } else {
-        -100.0 * (new - old) as f64 / old as f64
+        -100.0 * f64::from(new - old) / f64::from(old)
     }
 }
 

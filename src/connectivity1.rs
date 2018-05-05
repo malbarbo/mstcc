@@ -22,10 +22,10 @@ impl<'a, G: 'a + IncidenceGraph> TrackConnectivity1<'a, G> {
         let finish = g.vertex_prop(0);
         let root = first(g.vertices());
         TrackConnectivity1 {
-            g: g,
-            discover: discover,
-            finish: finish,
-            root: root,
+            g,
+            discover,
+            finish,
+            root,
             sub: root,
         }
     }

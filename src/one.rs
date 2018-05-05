@@ -25,7 +25,7 @@ pub struct OneEdgeReplacement<'a> {
 impl<'a> OneEdgeReplacement<'a> {
     pub fn new(p: &'a MstCcProblem) -> Self {
         OneEdgeReplacement {
-            p: p,
+            p,
             non_tree: Vec::with_capacity(p.g.num_edges()),
             in_tree: p.g.edge_prop(false),
             conflicts: TrackConflicts::new(p),

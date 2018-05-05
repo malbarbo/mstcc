@@ -23,7 +23,7 @@ pub fn read_sammer_urrutia(file: &str) -> Result<MstCcProblem, Box<Error>> {
     let m: usize = parse_next(lines)?;
     let c: usize = parse_next(lines)?;
 
-    let mut b = <StaticGraph as WithBuilder>::Builder::new(n, m);
+    let mut b = StaticGraph::builder(n, m);
     let mut w = Vec::<u32>::new();
 
     for _ in 0..m {
@@ -66,11 +66,11 @@ pub fn read_sammer_urrutia(file: &str) -> Result<MstCcProblem, Box<Error>> {
     debug!("End read_sammer_urrutia: {}", file);
 
     Ok(MstCcProblem {
-        name: name,
-        g: g,
-        w: w,
-        cc: cc,
-        num_cc: num_cc,
+        name,
+        g,
+        w,
+        cc,
+        num_cc,
         alpha: 1.into(),
         beta: 0.into(),
     })
